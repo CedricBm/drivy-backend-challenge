@@ -3,7 +3,7 @@ require "json"
 
 def main
   input_data = read_json_to_hash("data.json")
-  rental_prices = generate_rental_prices(input_data)
+  rental_prices = calculate_rental_prices(input_data)
   write_json_file(rental_prices)
 end
 
@@ -12,22 +12,48 @@ def read_json_to_hash(filename)
   JSON.parse(file)
 end
 
-def generate_rental_prices(data)
+def calculate_rental_prices(data)
   rental_prices = {}
   rental_prices["rentals"] = []
 
   data["rentals"].each do |rental|
-    start_date = Date.parse(rental["start_date"])
-    end_date = Date.parse(rental["end_date"])
-    nb_days = (end_date - start_date).to_i + 1 # Don't forget to add the first day
-
     rental_car = data["cars"].detect{|car| car["id"] == rental["car_id"]}
-    price = nb_days * rental_car["price_per_day"] + rental["distance"] * rental_car["price_per_km"]
+    price = calculate_price(rental, rental_car).to_i
 
-    rental_prices["rentals"] << {"id": rental["id"], "price": price}
+    rental_prices["rentals"] << {"id" => rental["id"], "price" => price}
   end
 
   rental_prices
+end
+
+def calculate_price(rental, rental_car)
+  nb_days = period_in_days(rental)
+  price = 0
+
+  for counter in 1..nb_days
+    price += rental_car["price_per_day"] * decrease_rate_by_day(counter)
+  end
+
+  price += rental["distance"] * rental_car["price_per_km"]
+end
+
+def period_in_days(rental)
+  start_date = Date.parse(rental["start_date"])
+  end_date = Date.parse(rental["end_date"])
+
+  (end_date - start_date).to_i + 1 # Don't forget to add the first day
+end
+
+def decrease_rate_by_day(counter)
+  if counter <= 1
+    1
+  elsif counter > 1 && counter <= 4
+    0.9
+  elsif counter > 4 && counter <= 10
+    0.7
+  else
+    0.5
+  end
 end
 
 def write_json_file(output_data)
