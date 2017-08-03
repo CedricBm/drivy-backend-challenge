@@ -3,16 +3,18 @@ require "./json_utility"
 require "date"
 
 class Rental
-  attr_accessor :id, :car, :start_date, :end_date, :distance, :price, :commission
+  attr_accessor :id, :car, :start_date, :end_date, :distance, :price, :commission, :has_deductible_reduction, :deductible_reduction
 
-  def initialize(id, car, start_date, end_date, distance)
+  def initialize(id, car, start_date, end_date, distance, has_deductible_reduction = false)
     @id = id
     @car = car
     @start_date = Date.parse(start_date)
     @end_date = Date.parse(end_date)
     @distance = distance
+    @has_deductible_reduction = has_deductible_reduction
 
     @price = calculate_price
+    @deductible_reduction = calculate_deductible_reduction
     @commission = calculate_commission
   end
 
@@ -24,7 +26,7 @@ class Rental
 
     input_hash["rentals"].each do |rental|
       car = cars.detect{|c| c.id == rental["car_id"]}
-      rentals << Rental.new(rental["id"], car, rental["start_date"], rental["end_date"], rental["distance"])
+      rentals << Rental.new(rental["id"], car, rental["start_date"], rental["end_date"], rental["distance"], rental["deductible_reduction"])
     end
 
     rentals
@@ -56,6 +58,10 @@ class Rental
     end
   end
 
+  def calculate_deductible_reduction
+    @has_deductible_reduction ? period_in_days * 400 : 0
+  end
+
   def calculate_commission
     commission_price = @price * 0.3
 
@@ -67,7 +73,7 @@ class Rental
   end
 
   def to_json
-    {"id" => @id, "price" => @price.to_i, "commission" => @commission.to_json}
+    {"id" => @id, "price" => @price.to_i, "options" => {"deductible_reduction" => @deductible_reduction}, "commission" => @commission.to_json}
   end
 
 end
