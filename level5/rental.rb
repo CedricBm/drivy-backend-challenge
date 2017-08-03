@@ -1,9 +1,10 @@
+require "./action"
 require "./commission"
 require "./json_utility"
 require "date"
 
 class Rental
-  attr_accessor :id, :car, :start_date, :end_date, :distance, :price, :commission, :has_deductible_reduction, :deductible_reduction
+  attr_accessor :id, :car, :start_date, :end_date, :distance, :price, :commission, :has_deductible_reduction, :deductible_reduction, :driver, :owner, :insurance, :assistance, :drivy
 
   def initialize(id, car, start_date, end_date, distance, has_deductible_reduction = false)
     @id = id
@@ -16,6 +17,7 @@ class Rental
     @price = calculate_price
     @deductible_reduction = calculate_deductible_reduction
     @commission = calculate_commission
+    generate_actions
   end
 
   def self.generate_rentals_from_json_file(filename, cars)
@@ -72,8 +74,16 @@ class Rental
     Commission.new(insurance_fee, assistance_fee, drivy_fee)
   end
 
+  def generate_actions
+    @driver = Action.new("driver", "debit", @price + @deductible_reduction)
+    @owner = Action.new("owner", "credit", @price * 0.7)
+    @insurance = Action.new("insurance", "credit", @commission.insurance_fee)
+    @assistance = Action.new("assistance", "credit", @commission.assistance_fee)
+    @drivy = Action.new("drivy", "credit", @commission.drivy_fee + @deductible_reduction)
+  end
+
   def to_json
-    {"id" => @id, "price" => @price.to_i, "options" => {"deductible_reduction" => @deductible_reduction}, "commission" => @commission.to_json}
+    {"id" => @id, "actions" => [@driver.to_json, @owner.to_json, @insurance.to_json, @assistance.to_json, @drivy.to_json]}
   end
 
 end
