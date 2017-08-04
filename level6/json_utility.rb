@@ -6,8 +6,8 @@ class JSONUtility
     begin
       file = File.read(filename)
       JSON.parse(file)
-    rescue
-      nil
+    rescue => e
+      raise "#{filename} file does not exists!"
     end
   end
 
